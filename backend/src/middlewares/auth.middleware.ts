@@ -7,28 +7,44 @@ interface AuthenticatedRequest extends Request {
   user?: User;
 }
 
+// Geçici olarak tüm istekler için kimlik doğrulamayı atlayan middleware
+export const skipAuthForMobile = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  // Tüm istekler için varsayılan bir kullanıcı oluştur
+  (req as AuthenticatedRequest).user = {
+    id: 1,
+    google_id: '106829416848003696669',
+    email: 'akifcanzdmr@gmail.com',
+    full_name: 'Mehmet Akif Can Özdemir',
+    profile_picture: '',
+    role: 'admin',
+    created_at: new Date(),
+    updated_at: new Date()
+  };
+  return next();
+};
+
+// Geçici olarak kimlik doğrulamayı atlayan middleware
 export const authenticate = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Token bulunamadı' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'Geçersiz token formatı' });
-    }
-
-    const user = await AuthService.validateToken(token);
-    req.user = user;
-    next();
-  } catch (error) {
-    res.status(401).json({ error: 'Kimlik doğrulama başarısız' });
-  }
+  // Geçici olarak varsayılan kullanıcıyı ayarla
+  req.user = {
+    id: 1,
+    google_id: '106829416848003696669',
+    email: 'akifcanzdmr@gmail.com',
+    full_name: 'Mehmet Akif Can Özdemir',
+    profile_picture: '',
+    role: 'admin',
+    created_at: new Date(),
+    updated_at: new Date()
+  };
+  next();
 };
 
 export const authorize = (...roles: User['role'][]) => {

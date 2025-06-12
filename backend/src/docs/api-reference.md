@@ -2567,3 +2567,72 @@ Authorization: Bearer YOUR_JWT_TOKEN
   }
 ]
 ``` 
+
+## Garson Çağırma Yönetimi
+
+### Garson Çağırma Kaydı Oluştur
+
+```
+POST /api/v1/waiter-calls
+```
+
+**Request Body:**
+```json
+{
+  "table_id": 5
+}
+```
+
+**Başarılı Yanıt (201 Created):**
+```json
+{
+  "id": 1,
+  "table_id": 5,
+  "status": "pending",
+  "created_at": "2024-05-01T12:00:00.000Z",
+  "updated_at": "2024-05-01T12:00:00.000Z"
+}
+```
+
+### Aktif Garson Çağrılarını Listele
+
+```
+GET /api/v1/waiter-calls
+```
+
+**Başarılı Yanıt (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "table_id": 5,
+    "status": "pending",
+    "created_at": "2024-05-01T12:00:00.000Z",
+    "updated_at": "2024-05-01T12:00:00.000Z"
+  }
+]
+```
+
+### Garson Çağrısını Güncelle (Kapat)
+
+```
+PATCH /api/v1/waiter-calls/:id
+```
+
+**Request Body:**
+```json
+{
+  "status": "done"
+}
+```
+
+**Başarılı Yanıt (200 OK):**
+```json
+{
+  "id": 1,
+  "table_id": 5,
+  "status": "done",
+  "created_at": "2024-05-01T12:00:00.000Z",
+  "updated_at": "2024-05-01T12:10:00.000Z"
+}
+```

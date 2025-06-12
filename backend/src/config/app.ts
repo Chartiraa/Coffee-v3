@@ -54,7 +54,19 @@ export const config: AppConfig = {
     max: 100 // her IP için 15 dakikada maksimum 100 istek
   },
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'https://admin.lerascoffee.com',
+        'https://lerascoffee.com'
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS hatası: Erişim reddedildi!'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true

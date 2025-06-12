@@ -19,6 +19,7 @@ import {
   Menu,
   MenuItem,
   Avatar,
+  Badge,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -32,6 +33,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import { authService } from '../services/api';
 
 const drawerWidth = 240;
@@ -46,6 +48,7 @@ const navItems: NavItem[] = [
   { text: 'Dashboard', path: '/', icon: <DashboardIcon /> },
   { text: 'Yeni Sipariş', path: '/orders/new', icon: <AddShoppingCartIcon /> },
   { text: 'Siparişler', path: '/orders', icon: <ReceiptIcon /> },
+  { text: 'Garson Bildirimleri', path: '/waiter-requests', icon: <NotificationsIcon /> },
   { text: 'Hesap İşlemleri', path: '/cashier', icon: <PaymentsIcon /> },
   { text: 'Raporlar', path: '/reports', icon: <AssessmentIcon /> },
   { text: 'Stok', path: '/inventory', icon: <InventoryIcon /> },

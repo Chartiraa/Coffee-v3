@@ -13,9 +13,14 @@ router.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Google OAuth routes
-router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email']
-}));
+router.get('/google', (req, res, next) => {
+  // redirect_uri'yi query parametresi olarak sakla
+  const redirectUri = req.query.redirect_uri;
+  
+  passport.authenticate('google', {
+    scope: ['profile', 'email']
+  })(req, res, next);
+});
 
 router.get('/google/callback', 
   passport.authenticate('google', { session: false }),

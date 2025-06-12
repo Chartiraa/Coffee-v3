@@ -139,7 +139,8 @@ class OrderController {
       const validStatuses = ['created', 'in_progress', 'ready', 'delivered', 'completed', 'cancelled'];
       
       if (status && !validStatuses.includes(status)) {
-        return res.status(400).json({ error: 'Geçersiz sipariş durumu' });
+        console.log('Geçersiz sipariş durumu:', status);
+        return res.status(400).json({ error: status });
       }
 
       // Eğer tamamlanmış siparişleri hariç tutma isteği varsa, siparişleri filtreleyin

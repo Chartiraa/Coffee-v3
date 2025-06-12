@@ -20,13 +20,16 @@ class AuthController {
     try {
       const user = req.user;
       if (!user) {
-        return res.redirect(`${process.env.FRONTEND_URL}/auth-error`);
+        const redirectUri = req.query.redirect_uri as string || process.env.FRONTEND_URL;
+        return res.redirect(`${redirectUri}/auth-error`);
       }
 
       const token = generateToken(user);
-      res.redirect(`${process.env.FRONTEND_URL}?token=${token}`);
+      const redirectUri = req.query.redirect_uri as string || process.env.FRONTEND_URL;
+      res.redirect(`${redirectUri}?token=${token}`);
     } catch (error) {
-      res.redirect(`${process.env.FRONTEND_URL}/auth-error`);
+      const redirectUri = req.query.redirect_uri as string || process.env.FRONTEND_URL;
+      res.redirect(`${redirectUri}/auth-error`);
     }
   }
 

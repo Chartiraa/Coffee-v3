@@ -12,14 +12,21 @@ import {
   Divider,
   Button,
   CircularProgress,
-  Alert
+  Alert,
+  Chip
 } from '@mui/material';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import TableBarIcon from '@mui/icons-material/TableBar';
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
 import InventoryIcon from '@mui/icons-material/Inventory';
+import NotificationImportantIcon from '@mui/icons-material/NotificationImportant';
 import { useNavigate } from 'react-router-dom';
 import { paymentService, orderService, tableService, inventoryService } from '../services/api';
+import { io } from 'socket.io-client';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 // API Response Types
 interface OrderItem {
@@ -80,6 +87,14 @@ interface ApiResponse<T> {
   data: T;
 }
 
+interface WaiterRequest {
+  id: number;
+  table_id: number;
+  status: 'pending' | 'done';
+  created_at: string;
+  updated_at: string;
+}
+
 interface DashboardData {
   salesSummary: {
     today: number;
@@ -100,6 +115,12 @@ interface DashboardData {
     quantity: number;
     min_quantity: number;
   }[];
+  waiterRequests: {
+    id: number;
+    table_id: number;
+    status: string;
+    time: string;
+  }[];
   tables: {
     total: number;
     occupied: number;
@@ -113,6 +134,25 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const fetchWaiterRequests = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/waiter-calls`);
+      if (!response.ok) {
+        throw new Error('Garson istekleri yüklenemedi');
+      }
+      const waiterRequests = await response.json();
+      return waiterRequests.map((request: WaiterRequest) => ({
+        id: request.id,
+        table_id: request.table_id,
+        status: request.status === 'pending' ? 'beklemede' : 'tamamlandı',
+        time: formatOrderTime(request.created_at)
+      }));
+    } catch (error) {
+      console.error('Garson istekleri yüklenirken hata:', error);
+      return [];
+    }
+  };
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -123,11 +163,12 @@ const Dashboard: React.FC = () => {
       const todayStr = today.toISOString().split('T')[0];
 
       // Paralel olarak tüm verileri çek
-      const [salesReport, orders, tables, lowStock] = await Promise.all([
+      const [salesReport, orders, tables, lowStock, waiterRequests] = await Promise.all([
         paymentService.getDailySalesReport(todayStr) as Promise<ApiResponse<DailySalesReport>>,
         orderService.getOrders() as Promise<ApiResponse<Order[]>>,
         tableService.getTables(true) as Promise<ApiResponse<Table[]>>,
-        inventoryService.getLowStockItems() as Promise<ApiResponse<InventoryItem[]>>
+        inventoryService.getLowStockItems() as Promise<ApiResponse<InventoryItem[]>>,
+        fetchWaiterRequests()
       ]);
 
       // Masa ID'lerini ve isimlerini bir obje olarak tut
@@ -182,6 +223,7 @@ const Dashboard: React.FC = () => {
           quantity: item.quantity,
           min_quantity: item.min_quantity
         })),
+        waiterRequests: waiterRequests,
         tables: {
           total: tables.data.length,
           occupied: tables.data.filter((table: Table) => table.status !== 'available').length,
@@ -209,13 +251,45 @@ const Dashboard: React.FC = () => {
     return `${hours} saat önce`;
   };
 
+  const handleWaiterRequest = async (id: number, status: 'done') => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/waiter-calls/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) {
+        throw new Error('Durum güncellenemedi');
+      }
+      // Dashboard verilerini yeniden yükle
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Garson isteği güncellenirken hata:', error);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
+    
+    // Socket.IO bağlantısını başlat
+    const socket = io(API_URL);
+    socket.emit('join-waiter-calls-room');
+
+    // Garson çağırma bildirimlerini dinle
+    socket.on('waiterRequest', () => {
+      // Yeni garson çağrısı geldiğinde dashboard'ı güncelle
+      fetchDashboardData();
+    });
     
     // Her 1 dakikada bir güncelle
     const interval = setInterval(fetchDashboardData, 60000);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
   }, []);
 
   if (loading) {
@@ -241,7 +315,7 @@ const Dashboard: React.FC = () => {
       </Typography>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             bgcolor: 'primary.main',
             color: 'primary.contrastText',
@@ -259,7 +333,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             bgcolor: 'secondary.main',
             color: 'secondary.contrastText',
@@ -277,7 +351,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             bgcolor: 'warning.main',
             color: 'warning.contrastText',
@@ -295,7 +369,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2}>
           <Card sx={{ 
             bgcolor: 'error.main',
             color: 'error.contrastText',
@@ -313,7 +387,32 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} sm={6} md={2}>
+          <Card sx={{ 
+            bgcolor: 'info.main',
+            color: 'info.contrastText',
+            height: '100%',
+            cursor: 'pointer'
+          }}
+          onClick={() => navigate('/waiter-requests')}
+          >
+            <CardContent>
+              <NotificationImportantIcon sx={{ fontSize: 40, mb: 1 }} />
+              <Typography variant="h5" component="div">
+                {data.waiterRequests.filter(r => r.status === 'beklemede').length}
+              </Typography>
+              <Typography variant="body2">
+                Garson Çağrısı
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2}>
+          {/* Boş alan - gelecekte başka bir kart eklenebilir */}
+        </Grid>
+
+        <Grid item xs={12} md={4}>
           <Paper sx={{ p: 2, height: '100%' }}>
             <Typography variant="h6" gutterBottom>
               Aktif Siparişler
@@ -363,7 +462,7 @@ const Dashboard: React.FC = () => {
           </Paper>
         </Grid>
         
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
           <Paper sx={{ p: 2, height: '100%' }}>
             <Typography variant="h6" gutterBottom>
               Düşük Stok Ürünleri
@@ -375,7 +474,7 @@ const Dashboard: React.FC = () => {
                 </ListItem>
               ) : (
                 data.lowStockItems.map((item) => (
-                  <React.Fragment key={item.id}>
+                  <div key={item.id}>
                     <ListItem
                       button
                       onClick={() => navigate('/inventory')}
@@ -395,7 +494,64 @@ const Dashboard: React.FC = () => {
                       />
                     </ListItem>
                     <Divider />
-                  </React.Fragment>
+                  </div>
+                ))
+              )}
+            </List>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Typography variant="h6" gutterBottom>
+              <NotificationImportantIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Garson Çağırma İstekleri
+            </Typography>
+            <List>
+              {data.waiterRequests.length === 0 ? (
+                <ListItem>
+                  <ListItemText primary="Aktif garson çağrısı bulunmuyor" />
+                </ListItem>
+              ) : (
+                data.waiterRequests.map((request) => (
+                  <div key={request.id}>
+                    <ListItem
+                      secondaryAction={
+                        request.status === 'beklemede' ? (
+                          <Button 
+                            variant="contained" 
+                            size="small"
+                            color="success"
+                            onClick={() => handleWaiterRequest(request.id, 'done')}
+                          >
+                            Tamamla
+                          </Button>
+                        ) : (
+                          <Chip
+                            label="Tamamlandı"
+                            color="success"
+                            size="small"
+                          />
+                        )
+                      }
+                    >
+                      <ListItemText
+                        primary={`Masa ${request.table_id}`}
+                        secondary={
+                          <div>
+                            <Chip
+                              label={request.status}
+                              color={request.status === 'beklemede' ? 'warning' : 'success'}
+                              size="small"
+                              sx={{ mr: 1 }}
+                            />
+                            {request.time}
+                          </div>
+                        }
+                      />
+                    </ListItem>
+                    <Divider />
+                  </div>
                 ))
               )}
             </List>

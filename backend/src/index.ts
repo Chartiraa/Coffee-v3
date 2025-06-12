@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import passport from 'passport';
 import { createServer } from 'http';
 import SocketService from './services/socket.service';
+import { skipAuthForMobile } from './middlewares/auth.middleware';
 
 // Passport konfigürasyonunu yükle
 import './config/passport';
@@ -18,6 +19,7 @@ import tableRoutes from './routes/table.routes';
 import orderRoutes from './routes/order.routes';
 import inventoryRoutes from './routes/inventory.routes';
 import paymentRoutes from './routes/payment.routes';
+import waiterCallsRoutes from './routes/waiter-calls.routes';
 
 const app = express();
 const httpServer = createServer(app);
@@ -38,6 +40,9 @@ app.use(passport.initialize());
 const limiter = rateLimit(config.rateLimit);
 app.use(limiter);
 
+// Mobil istekler için kimlik doğrulama atlama middleware'i
+app.use(skipAuthForMobile);
+
 // Debug için tüm routeları logla
 app.use((req, res, next) => {
   console.log(`[DEBUG] ${req.method} ${req.path}`);
@@ -51,6 +56,7 @@ app.use('/api/v1/tables', tableRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/v1/inventory', inventoryRoutes);
 app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/waiter-calls', waiterCallsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

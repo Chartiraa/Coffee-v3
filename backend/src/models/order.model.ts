@@ -226,19 +226,46 @@ class OrderModel {
     return order;
   }
   
-  async findByTableId(tableId: number, status?: Order['status']): Promise<Order[]> {
+  async findByTableId(tableId: number, status?: string): Promise<Order[]> {
     let query = 'SELECT * FROM orders WHERE table_id = $1';
     const queryParams: any[] = [tableId];
     
     if (status) {
-      query += ' AND status = $2';
-      queryParams.push(status);
+      // Status virgülle ayrılmış değerler içerebilir
+      const statuses = status.split(',');
+      query += ` AND status = ANY($2)`;
+      queryParams.push(statuses);
     }
     
     query += ' ORDER BY created_at DESC';
     
     const result = await this.pool.query(query, queryParams);
-    return result.rows;
+    const orders = result.rows;
+    
+    // Her sipariş için öğeleri ve seçenekleri getir
+    for (const order of orders) {
+      // Sipariş öğelerini getir
+      const itemsResult = await this.pool.query(
+        'SELECT * FROM order_items WHERE order_id = $1 ORDER BY created_at ASC',
+        [order.id]
+      );
+      
+      const items = itemsResult.rows;
+      
+      // Her öğe için seçenekleri getir
+      for (const item of items) {
+        const optionsResult = await this.pool.query(
+          'SELECT * FROM order_item_options WHERE order_item_id = $1',
+          [item.id]
+        );
+        
+        item.product_options = optionsResult.rows;
+      }
+      
+      order.items = items;
+    }
+    
+    return orders;
   }
   
   async findAll(status?: string): Promise<Order[]> {

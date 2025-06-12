@@ -33,6 +33,12 @@ class SocketService {
         console.log(`${socket.id} masalar odasına katıldı`);
       });
 
+      // Garson çağırma odasına katılma
+      socket.on('join-waiter-calls-room', () => {
+        socket.join('waiter-calls');
+        console.log(`${socket.id} garson çağırma odasına katıldı`);
+      });
+
       socket.on('disconnect', (reason) => {
         console.log('Client bağlantısı koptu:', socket.id, 'Sebep:', reason);
       });
@@ -61,6 +67,18 @@ class SocketService {
   public emitTableUpdate(table: any) {
     console.log('Masa güncelleme bildirimi gönderiliyor:', table);
     this.io.to('tables').emit('table-updated', table);
+  }
+
+  // Yeni garson çağırma bildirimi gönder
+  public emitNewWaiterCall(waiterCall: any) {
+    console.log('Yeni garson çağırma bildirimi gönderiliyor:', waiterCall);
+    this.io.to('waiter-calls').emit('waiterRequest', waiterCall);
+  }
+
+  // Garson çağırma güncelleme bildirimi gönder
+  public emitWaiterCallUpdate(waiterCall: any) {
+    console.log('Garson çağırma güncelleme bildirimi gönderiliyor:', waiterCall);
+    this.io.to('waiter-calls').emit('waiterRequest', waiterCall);
   }
 }
 

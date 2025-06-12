@@ -192,6 +192,14 @@ CREATE TABLE IF NOT EXISTS cash_register_transactions (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE waiter_calls (
+    id SERIAL PRIMARY KEY,
+    table_id INTEGER NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending', -- pending, done, cancelled vs.
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Örnek stok kategorileri
 INSERT INTO inventory_items (name, category, unit, quantity, min_quantity, cost_price, is_active) VALUES
   ('Arabica Çekirdek Kahve', 'Kahve Çekirdeği', 'kg', 10.00, 2.00, 150.00, true),

@@ -12,6 +12,7 @@ import Inventory from './pages/Inventory';
 import Payments from './pages/Payments';
 import Cashier from './pages/Cashier';
 import Reports from './pages/Reports';
+import WaiterRequests from './pages/WaiterRequests';
 import AuthGuard from './components/AuthGuard';
 import TokenHandler from './components/TokenHandler';
 
@@ -32,6 +33,13 @@ function App() {
           <AuthGuard>
             <Layout>
               <Menu />
+            </Layout>
+          </AuthGuard>
+        } />
+        <Route path="/waiter-requests" element={
+          <AuthGuard>
+            <Layout>
+              <WaiterRequests />
             </Layout>
           </AuthGuard>
         } />
